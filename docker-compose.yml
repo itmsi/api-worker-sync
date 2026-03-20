@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  # ── Worker Service ─────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      target: production
+    container_name: api-worker
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - infra_net
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: worker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: worker_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d worker_db']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - infra_net
+
+  # ── RabbitMQ ───────────────────────────────────────────────────────────────
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: worker-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - '5672:5672'
+      - '15672:15672'   # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    networks:
+      - infra_net
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+
+networks:
+  infra_net:
+    external: true  # PENTING! Gunakan network yang sudah ada
+    name: infra_net # Network untuk nginx dan cloudflare tunnel
