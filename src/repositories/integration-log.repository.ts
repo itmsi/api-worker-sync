@@ -2,7 +2,7 @@ import { db } from '../config/db';
 
 export interface IntegrationLogInput {
   aggregate_type: string;
-  aggregate_id: number;
+  aggregate_id: string;
   request_payload: Record<string, unknown>;
   response_payload?: Record<string, unknown>;
   status: 'SUCCESS' | 'FAILED';

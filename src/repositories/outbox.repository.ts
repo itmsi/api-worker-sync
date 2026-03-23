@@ -5,7 +5,7 @@ export type EventStatus = 'WAITING' | 'PROCESSING' | 'SUCCESS' | 'FAILED';
 export interface OutboxEvent {
   id: string;
   aggregate_type: string;
-  aggregate_id: number;
+  aggregate_id: string;
   event_type: 'CREATE' | 'UPDATE' | 'DELETE';
   payload: Record<string, unknown>;
   status: EventStatus;
