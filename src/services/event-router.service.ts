@@ -1,6 +1,7 @@
 import { OutboxEvent } from '../repositories/outbox.repository';
 import { handleCustomerEvent } from '../handlers/customer.handler';
 import { handleVendorEvent } from '../handlers/vendor.handler';
+import { handleWebhookEvent } from '../handlers/webhook.handler';
 import { logger } from '../utils/logger';
 
 type HandlerFn = (event: OutboxEvent) => Promise<void>;
@@ -8,6 +9,7 @@ type HandlerFn = (event: OutboxEvent) => Promise<void>;
 const handlerRegistry: Record<string, HandlerFn> = {
   customer: handleCustomerEvent,
   vendor: handleVendorEvent,
+  webhook: handleWebhookEvent,
 };
 
 export const routeEvent = async (event: OutboxEvent): Promise<void> => {

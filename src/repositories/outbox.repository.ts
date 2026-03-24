@@ -14,6 +14,29 @@ export interface OutboxEvent {
   last_error?: string;
   created_at: Date;
   updated_at: Date;
+
+  destination?: string | null;
+  is_notified?: '0' | '1';
+  created_by?: string | null;
+  updated_by?: string | null;
+  is_deleted?: boolean;
+  properties?: Record<string, unknown> | null;
+  app_id?: number | null;
+}
+
+export interface OutboxEventLog {
+  id?: string;
+  outbox_event_id: string;
+  http_status?: string | null;
+  error?: string | null;
+  properties?: Record<string, unknown> | null;
+  created_by?: string | null;
+  created_at?: Date;
+  updated_by?: string | null;
+  updated_at?: Date;
+  is_deleted?: boolean;
+  deleted_at?: Date | null;
+  deleted_by?: string | null;
 }
 
 const TABLE = 'outbox_events';
@@ -26,13 +49,29 @@ export const findEventById = async (eventId: string): Promise<OutboxEvent | null
 export const updateEventStatus = async (
   eventId: string,
   status: EventStatus,
-  lastError?: string
+  lastError?: string,
+  isNotified?: '0' | '1',
+  destinationUrl?: string
 ): Promise<void> => {
-  await db(TABLE).where({ id: eventId }).update({
+  const updateData: Record<string, any> = {
     status,
-    last_error: lastError ?? undefined,
+    last_error: lastError ?? db.raw('NULL'),
     updated_at: db.fn.now(),
-  });
+  };
+
+  if (isNotified !== undefined) {
+    updateData.is_notified = isNotified;
+  }
+  
+  if (destinationUrl !== undefined) {
+    updateData.destination = destinationUrl;
+  }
+
+  await db(TABLE).where({ id: eventId }).update(updateData);
+};
+
+export const insertEventLog = async (log: OutboxEventLog): Promise<void> => {
+  await db('outbox_event_logs').insert(log);
 };
 
 export const incrementRetryCount = async (eventId: string): Promise<void> => {
@@ -94,4 +133,43 @@ export const resetBulkEventsForRetry = async (
     bindings
   );
   return result.rows;
+};
+
+export const getOutboxEvents = async (
+  page: number = 1,
+  limit: number = 10,
+  filters: { aggregate_type?: string; status?: EventStatus; is_notified?: '0' | '1' } = {}
+) => {
+  const query = db<OutboxEvent>(TABLE).select('*').orderBy('created_at', 'desc');
+
+  if (filters.aggregate_type) query.where('aggregate_type', filters.aggregate_type);
+  if (filters.status) query.where('status', filters.status);
+  if (filters.is_notified) query.where('is_notified', filters.is_notified);
+
+  const offset = (page - 1) * limit;
+  const rows = await query.limit(limit).offset(offset);
+
+  const countQuery = db(TABLE).count('* as total');
+  if (filters.aggregate_type) countQuery.where('aggregate_type', filters.aggregate_type);
+  if (filters.status) countQuery.where('status', filters.status);
+  if (filters.is_notified) countQuery.where('is_notified', filters.is_notified);
+
+  const countRes = await countQuery.first();
+  const total = countRes ? Number(countRes.total) : 0;
+
+  return {
+    data: rows,
+    metadata: { page, limit, total, total_pages: Math.ceil(total / limit) }
+  };
+};
+
+export const getOutboxEventWithLogs = async (eventId: string) => {
+  const event = await findEventById(eventId);
+  if (!event) return null;
+
+  const logs = await db<OutboxEventLog>('outbox_event_logs')
+    .where({ outbox_event_id: eventId })
+    .orderBy('created_at', 'desc');
+
+  return { ...event, logs };
 };

@@ -1,6 +1,9 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import retryRoutes from './routes/retry.routes';
 import healthRoutes from './routes/health.routes';
+import outboxRoutes from './routes/outbox.routes';
 import { logger } from './utils/logger';
 
 const app: Application = express();
@@ -14,9 +17,13 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Routes
 app.use('/health', healthRoutes);
 app.use('/retry', retryRoutes);
+app.use('/outbox', outboxRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

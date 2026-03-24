@@ -9,9 +9,33 @@ import { logger } from '../utils/logger';
 const router = Router();
 
 /**
- * POST /retry/module/:type
- * Must be defined BEFORE /retry/:event_id to avoid route conflict
- * Retry all FAILED events for a specific module (e.g., customer, vendor)
+ * @swagger
+ * /retry/module/{type}:
+ *   post:
+ *     summary: Retry events by module
+ *     description: Retries all FAILED events for a specific module (e.g., customer, vendor).
+ *     tags: [Retry]
+ *     parameters:
+ *       - in: path
+ *         name: type
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The aggregate type (module name)
+ *     responses:
+ *       200:
+ *         description: Successfully queued for retry
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 aggregate_type:
+ *                   type: string
+ *                 re_queued:
+ *                   type: integer
  */
 router.post('/module/:type', async (req: Request, res: Response, next: NextFunction) => {
   const type = req.params['type'] as string;
@@ -25,9 +49,41 @@ router.post('/module/:type', async (req: Request, res: Response, next: NextFunct
 });
 
 /**
- * POST /retry/bulk
- * Retry bulk events with optional filters
- * Body: { aggregate_type?, from_date?, to_date?, status? }
+ * @swagger
+ * /retry/bulk:
+ *   post:
+ *     summary: Bulk retry events
+ *     description: Retry bulk events with optional filters.
+ *     tags: [Retry]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               aggregate_type:
+ *                 type: string
+ *               from_date:
+ *                 type: string
+ *                 format: date-time
+ *               to_date:
+ *                 type: string
+ *                 format: date-time
+ *               status:
+ *                 type: string
+ *                 enum: [WAITING, PROCESSING, SUCCESS, FAILED]
+ *     responses:
+ *       200:
+ *         description: Successfully queued for retry
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 re_queued:
+ *                   type: integer
  */
 router.post('/bulk', async (req: Request, res: Response, next: NextFunction) => {
   const { aggregate_type, from_date, to_date, status } = req.body as {
@@ -51,8 +107,31 @@ router.post('/bulk', async (req: Request, res: Response, next: NextFunction) => 
 });
 
 /**
- * POST /retry/:event_id
- * Retry a single failed event
+ * @swagger
+ * /retry/{event_id}:
+ *   post:
+ *     summary: Retry single event
+ *     description: Retry a single failed event by taking its ID.
+ *     tags: [Retry]
+ *     parameters:
+ *       - in: path
+ *         name: event_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The UUID of the outbox event
+ *     responses:
+ *       200:
+ *         description: Successfully queued for retry
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.post('/:event_id', async (req: Request, res: Response, next: NextFunction) => {
   const event_id = req.params['event_id'] as string;
