@@ -5,7 +5,7 @@ const router = Router();
 
 /**
  * @swagger
- * /health:
+ * /api/webhook/health:
  *   get:
  *     summary: Check service health
  *     description: Returns the health status of the api-worker service and its database connection.
