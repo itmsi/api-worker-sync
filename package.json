@@ -12,7 +12,7 @@
     "migrate:rollback": "knex --knexfile knexfile.ts migrate:rollback",
     "migrate:status": "knex --knexfile knexfile.ts migrate:status",
     "migrate:make": "knex --knexfile knexfile.ts migrate:make",
-    "migrate:prod": "knex --knexfile knexfile.js migrate:latest"
+    "migrate:prod": "knex --knexfile knexfile.js --env production migrate:latest"
   },
   "keywords": [
     "worker",

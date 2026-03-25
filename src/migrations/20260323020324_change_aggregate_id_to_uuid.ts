@@ -1,4 +1,4 @@
-import { Knex } from 'knex';
+import type { Knex } from 'knex';
 
 export async function up(knex: Knex): Promise<void> {
   // we do the alteration for both tables since both use 'aggregate_id' as integer initially.
@@ -7,7 +7,7 @@ export async function up(knex: Knex): Promise<void> {
     ALTER TABLE outbox_events 
     ALTER COLUMN aggregate_id TYPE uuid USING (gen_random_uuid());
   `);
-  
+
   await knex.raw(`
     ALTER TABLE integration_logs 
     ALTER COLUMN aggregate_id TYPE uuid USING (gen_random_uuid());
