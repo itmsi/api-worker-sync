@@ -1,72 +1,68 @@
-version: '3.9'
-
 services:
-  # ── Worker Service ─────────────────────────────────────────────────────────
-  worker:
+  api:
+    container_name: api-webhook
+    image: api-webhook
     build:
       context: .
-      target: production
-    container_name: api-worker
+      dockerfile: Dockerfile
+    # Load semua environment variables dari file .env
+    # Semua config (database, redis, rabbitmq, dll) harus ada di file .env
+    env_file:
+      - .env
     restart: unless-stopped
-    env_file: .env
     ports:
-      - '4000:4000'
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - "9888:9888"
+    volumes:
+      - ./logs:/app/logs
+      - ./public:/app/public
+      - ./storages:/app/storages
+    # Hanya override variables yang berbeda untuk Docker environment
+    # Semua variables lain (DB_HOST_PROD, DB_USER_PROD, REDIS_HOST, dll) 
+    # akan diambil dari file .env via env_file di atas
+    environment:
+      # Override untuk production server
+      - NODE_ENV=development
+      - APP_PORT=9888
+      - SERVICE_NAME=api-sso
+      - DATABASE_URL=${DATABASE_URL}?application_name=api-sso
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+      # RABBITMQ_URL akan diambil dari file .env via env_file
+      # Override database host jika database di container/service lain (contoh)
+      # - DB_HOST_PROD=postgres-service  # Uncomment jika DB di container lain
+      # - POSTGRES_HOST=postgres-service  # Uncomment jika DB di container lain
+      # Override Redis host jika Redis di container/service lain
+      # Redis akan dikoneksikan ke network infra_net
+      # - REDIS_HOST=redis-service  # Uncomment jika Redis di container lain
+      # APM Configuration (disable untuk production jika tidak digunakan)
+      - APM_SERVICE_URL=
+      - APM_SERVICE_NAME=
+      - APM_SERVICE_TOKEN=
+      - ELASTIC_APM_SERVER_URL=
+      - ELASTIC_APM_SECRET_TOKEN=
+      - ELASTIC_APM_SERVICE_NAME=
+      - ELASTIC_APM_ENVIRONMENT=production
+      - ELASTIC_APM_ACTIVE=false
+      - ELASTIC_APM_DISABLED=true
     networks:
       - infra_net
-
-  # ── PostgreSQL ─────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: worker-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: worker_db
-    ports:
-      - '5432:5432'
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d worker_db']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - infra_net
-
-  # ── RabbitMQ ───────────────────────────────────────────────────────────────
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: worker-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - '5672:5672'
-      - '15672:15672'   # Management UI
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    healthcheck:
-      test: ['CMD', 'rabbitmq-diagnostics', 'ping']
-      interval: 10s
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:9888/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })" ]
+      interval: 30s
       timeout: 10s
-      retries: 10
-    networks:
-      - infra_net
-
-volumes:
-  postgres-data:
-  rabbitmq-data:
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
 
 networks:
   infra_net:
-    external: true  # PENTING! Gunakan network yang sudah ada
+    external: true # PENTING! Gunakan network yang sudah ada
     name: infra_net # Network untuk nginx dan cloudflare tunnel

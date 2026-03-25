@@ -1,30 +1,55 @@
-# ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+# ==========================================
+# Stage 1: Build & Dependencies
+# ==========================================
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json tsconfig.json ./
+# Copy dependency records
+COPY package*.json ./
 
-RUN npm ci --ignore-scripts
+# Install all dependencies (including devDependencies for tsc)
+RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-COPY src ./src
+# Copy application source code
+COPY . .
 
+# Build the TypeScript project
 RUN npm run build
 
-# ── Stage 2: Production ─────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+# ==========================================
+# Stage 2: Production release (Lightweight)
+# ==========================================
+FROM node:22-alpine
 
 WORKDIR /app
 
+# Set environments
 ENV NODE_ENV=production
 
+# Copy package files to install production dependencies
 COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
+# Install production dependencies only
+RUN npm ci --omit=dev --legacy-peer-deps || npm install --omit=dev --legacy-peer-deps
+
+# Copy built artifacts from builder stage
 COPY --from=builder /app/dist ./dist
+# knexfile.ts may be needed if they run migrations
+COPY --from=builder /app/knexfile.ts ./
+# Copy original source so swagger-jsdoc can parse the JSDoc comments from the TS files
+COPY --from=builder /app/src ./src
 
-EXPOSE 4000
+# Create runtime directories if not exist
+RUN mkdir -p logs public storages
 
+# Use non-root user
+# Change ownership of /app to node user
+RUN chown -R node:node /app
 USER node
 
-CMD ["node", "dist/index.js"]
+# Expose port
+EXPOSE 9888
+
+# Start the application
+CMD ["npm", "start"]
