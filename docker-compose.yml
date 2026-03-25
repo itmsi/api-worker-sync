@@ -23,8 +23,8 @@ services:
       # Override untuk production server
       - NODE_ENV=development
       - APP_PORT=9888
-      - SERVICE_NAME=api-sso
-      - DATABASE_URL=${DATABASE_URL}?application_name=api-sso
+      - SERVICE_NAME=api-webhook
+      - DATABASE_URL=${DATABASE_URL}?application_name=api-webhook
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
       # RABBITMQ_URL akan diambil dari file .env via env_file
       # Override database host jika database di container/service lain (contoh)
