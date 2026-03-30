@@ -18,12 +18,12 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 // Swagger Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/documentation', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
-app.use('/health', healthRoutes);
-app.use('/retry', retryRoutes);
-app.use('/outbox', outboxRoutes);
+app.use('/api/webhook/health', healthRoutes);
+app.use('/api/webhook/retry', retryRoutes);
+app.use('/api/webhook/outbox', outboxRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

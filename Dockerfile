@@ -35,8 +35,9 @@ RUN npm ci --omit=dev --legacy-peer-deps || npm install --omit=dev --legacy-peer
 
 # Copy built artifacts from builder stage
 COPY --from=builder /app/dist ./dist
-# knexfile.ts may be needed if they run migrations
+# knexfile.ts and knexfile.js needed for migrations
 COPY --from=builder /app/knexfile.ts ./
+COPY --from=builder /app/knexfile.js ./
 # Copy original source so swagger-jsdoc can parse the JSDoc comments from the TS files
 COPY --from=builder /app/src ./src
 

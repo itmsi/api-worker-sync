@@ -10,7 +10,7 @@ const router = Router();
 
 /**
  * @swagger
- * /retry/module/{type}:
+ * /api/webhook/retry/module/{type}:
  *   post:
  *     summary: Retry events by module
  *     description: Retries all FAILED events for a specific module (e.g., customer, vendor).
@@ -50,7 +50,7 @@ router.post('/module/:type', async (req: Request, res: Response, next: NextFunct
 
 /**
  * @swagger
- * /retry/bulk:
+ * /api/webhook/retry/bulk:
  *   post:
  *     summary: Bulk retry events
  *     description: Retry bulk events with optional filters.
@@ -108,7 +108,7 @@ router.post('/bulk', async (req: Request, res: Response, next: NextFunction) => 
 
 /**
  * @swagger
- * /retry/{event_id}:
+ * /api/webhook/retry/{event_id}:
  *   post:
  *     summary: Retry single event
  *     description: Retry a single failed event by taking its ID.

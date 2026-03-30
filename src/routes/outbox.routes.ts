@@ -5,7 +5,7 @@ const router = Router();
 
 /**
  * @swagger
- * /outbox:
+ * /api/webhook/outbox:
  *   get:
  *     summary: Get list of outbox events
  *     description: Retrieve outbox events with optional filtering and pagination.
@@ -48,7 +48,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const page = parseInt((req.query.page as string) || '1', 10);
     const limit = parseInt((req.query.limit as string) || '10', 10);
-    
+
     const filters: { aggregate_type?: string; status?: EventStatus; is_notified?: '0' | '1' } = {};
     if (req.query.aggregate_type) filters.aggregate_type = req.query.aggregate_type as string;
     if (req.query.status) filters.status = req.query.status as EventStatus;
@@ -63,7 +63,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
 /**
  * @swagger
- * /outbox/{event_id}:
+ * /api/webhook/outbox/{event_id}:
  *   get:
  *     summary: Get outbox event details with logs
  *     description: Retrieve a specific outbox event by ID along with its execution logs to troubleshoot failures.
@@ -86,7 +86,7 @@ router.get('/:event_id', async (req: Request, res: Response, next: NextFunction)
   try {
     const eventId = req.params.event_id as string;
     const data = await getOutboxEventWithLogs(eventId);
-    
+
     if (!data) {
       res.status(404).json({ success: false, message: 'Event not found' });
       return;
